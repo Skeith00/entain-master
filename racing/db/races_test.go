@@ -9,8 +9,22 @@ import (
 )
 
 /*
-RacesRepo test class with different filters in ListRacesRequestFilter
+RacesRepo test class with different filters
 */
+
+func TestRacesRepoFetchById_Get(t *testing.T) {
+	racesRepo := createRepo(t)
+
+	// Set up a  filter with visibile true
+	filter := &racing.GetRaceRequest{
+		Id: 1,
+	}
+	race, err := racesRepo.Get(filter)
+	assert.NoError(t, err)
+	assert.EqualValuesf(t, 1, race.Id, "Race should have id 1.")
+
+}
+
 func TestRacesRepoVisibleFilter_List(t *testing.T) {
 	racesRepo := createRepo(t)
 
@@ -160,6 +174,7 @@ func createRepo(t *testing.T) RacesRepo {
 	assert.NoError(t, err)
 
 	repo := NewRacesRepo(racingDB)
+
 	err = repo.Init()
 	assert.NoError(t, err)
 
