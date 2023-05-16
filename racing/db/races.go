@@ -2,14 +2,18 @@ package db
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
+	"git.neds.sh/matty/entain/racing/proto/racing"
 	"github.com/golang/protobuf/ptypes"
 	_ "github.com/mattn/go-sqlite3"
 	"strings"
 	"sync"
 	"time"
-
-	"git.neds.sh/matty/entain/racing/proto/racing"
 )
+
+// Static slice with all the possible fields to use to sort. For this case, we have decided to limit it to 4 fields
+var orderByFields = []string{Id, MeetingId, Name, AdvertisedStartTime}
 
 // RacesRepo provides repository access to races.
 type RacesRepo interface {
@@ -51,7 +55,10 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 
 	query = getRaceQueries()[racesList]
 
-	query, args = r.applyFilter(query, filter)
+	query, args, err = r.applyFilter(query, filter)
+	if err != nil {
+		return nil, err
+	}
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
@@ -61,14 +68,14 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 	return r.scanRaces(rows)
 }
 
-func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFilter) (string, []interface{}) {
+func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFilter) (string, []interface{}, error) {
 	var (
 		clauses []string
 		args    []interface{}
 	)
 
 	if filter == nil {
-		return query, args
+		return query, args, nil
 	}
 
 	if len(filter.MeetingIds) > 0 {
@@ -85,11 +92,35 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 		args = append(args, filter.Visible)
 	}
 
+	// Adding a field to the arguments to sort races
+	orderByField, err := determineOrderByField(filter.OrderBy)
+	if err != nil {
+		return "", nil, err
+	}
+	//args = append(args, orderByField)
+
 	if len(clauses) != 0 {
 		query += " WHERE " + strings.Join(clauses, " AND ")
 	}
+	query += fmt.Sprintf(" ORDER BY %s", orderByField)
+	return query, args, nil
+}
 
-	return query, args
+/*
+The orderBy field provided by the user is validated using this function.
+The default advertised_start_time field will be returned if the provided field is invalid.
+*/
+func determineOrderByField(orderBy *string) (string, error) {
+	if orderBy == nil {
+		return AdvertisedStartTime, nil
+	}
+	// Finding the element in the slice of valid orderBy fields
+	for _, element := range orderByFields {
+		if strings.ToLower(element) == strings.ToLower(*orderBy) {
+			return strings.ToLower(element), nil
+		}
+	}
+	return "", errors.New("order_by field incorrect")
 }
 
 func (m *racesRepo) scanRaces(
