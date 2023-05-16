@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"git.neds.sh/matty/entain/racing/proto/racing"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -11,7 +12,6 @@ import (
 RacesRepo test class with different filters in ListRacesRequestFilter
 */
 func TestRacesRepoVisibleFilter_List(t *testing.T) {
-
 	racesRepo := createRepo(t)
 
 	visible := true
@@ -42,7 +42,6 @@ func TestRacesRepoSortByAdvertisedStartTimeDefault_List(t *testing.T) {
 }
 
 func TestRacesRepoSortByMeetingId_List(t *testing.T) {
-
 	racesRepo := createRepo(t)
 	orderField := "meeting_id"
 	// Set up a  filter with OrderBy meeting_id
@@ -61,7 +60,6 @@ func TestRacesRepoSortByMeetingId_List(t *testing.T) {
 }
 
 func TestRacesRepoSortByMeetingIdInCaps_List(t *testing.T) {
-
 	racesRepo := createRepo(t)
 	orderField := "MEETING_ID"
 	// Set up a  filter with OrderBy meeting_id
@@ -80,7 +78,6 @@ func TestRacesRepoSortByMeetingIdInCaps_List(t *testing.T) {
 }
 
 func TestRacesRepoSortByName_List(t *testing.T) {
-
 	racesRepo := createRepo(t)
 	orderField := "name"
 	// Set up a  filter with OrderBy name
@@ -126,6 +123,27 @@ func TestRacesRepoSortByNoneExistentField_List(t *testing.T) {
 	}
 	_, err := racesRepo.List(filter)
 	assert.Error(t, err)
+}
+
+func TestRacesRepoStatusField_List(t *testing.T) {
+	racesRepo := createRepo(t)
+	// Set up a filter to pass to the List method
+	filter := &racing.ListRacesRequestFilter{}
+	races, err := racesRepo.List(filter)
+	assert.NoError(t, err)
+	assert.Equalf(t, 100, len(races), "There should be a total of 100 races in DB.")
+
+	// Validating that all races with CLOSED status have a past date and OPEN status in a future date
+	for _, race := range races {
+		switch race.Status {
+		case "CLOSED":
+			assert.Truef(t, ptypes.TimestampNow().Seconds > race.AdvertisedStartTime.Seconds, "Race %d should not be CLOSED.", race.Id)
+		case "OPEN":
+			assert.Truef(t, ptypes.TimestampNow().Seconds <= race.AdvertisedStartTime.Seconds, "Race %d should not be OPEN.", race.Id)
+		default:
+			assert.Failf(t, "There should only be OPEN and CLOSED status. %s is invalid.", race.Status)
+		}
+	}
 }
 
 func TestRacesRepoAll_List(t *testing.T) {
