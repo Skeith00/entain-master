@@ -22,6 +22,9 @@ type RacesRepo interface {
 
 	// List will return a list of races.
 	List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error)
+
+	// Get will return a single of race.
+	Get(filter *racing.GetRaceRequest) (*racing.Race, error)
 }
 
 type racesRepo struct {
@@ -47,12 +50,29 @@ func (r *racesRepo) Init() error {
 }
 
 func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error) {
+	genericFilter := &racing.RacesFilter{MeetingIds: filter.MeetingIds, Visible: filter.Visible, OrderBy: filter.OrderBy}
+	return r.executeFilter(genericFilter)
+}
+
+func (r *racesRepo) Get(filter *racing.GetRaceRequest) (*racing.Race, error) {
+	genericFilter := &racing.RacesFilter{Id: &filter.Id}
+	races, err := r.executeFilter(genericFilter)
+	if err != nil {
+		return nil, err
+	}
+	if len(races) == 0 {
+		return nil, errors.New("race does not exist")
+	}
+
+	return races[0], nil
+}
+
+func (r *racesRepo) executeFilter(filter *racing.RacesFilter) ([]*racing.Race, error) {
 	var (
 		err   error
 		query string
 		args  []interface{}
 	)
-
 	query = getRaceQueries()[racesList]
 
 	query, args, err = r.applyFilter(query, filter)
@@ -68,7 +88,7 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 	return r.scanRaces(rows)
 }
 
-func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFilter) (string, []interface{}, error) {
+func (r *racesRepo) applyFilter(query string, filter *racing.RacesFilter) (string, []interface{}, error) {
 	var (
 		clauses []string
 		args    []interface{}
@@ -92,12 +112,17 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 		args = append(args, filter.Visible)
 	}
 
+	// When ID parameter is included in the request, the race is fetched using the ID
+	if filter.Id != nil {
+		clauses = append(clauses, "id = ?")
+		args = append(args, filter.Id)
+	}
+
 	// Adding a field to the arguments to sort races
-	orderByField, err := determineOrderByField(filter.OrderBy)
+	orderByField, err := r.determineOrderByField(filter.OrderBy)
 	if err != nil {
 		return "", nil, err
 	}
-	//args = append(args, orderByField)
 
 	if len(clauses) != 0 {
 		query += " WHERE " + strings.Join(clauses, " AND ")
@@ -110,7 +135,7 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 The orderBy field provided by the user is validated using this function.
 The default advertised_start_time field will be returned if the provided field is invalid.
 */
-func determineOrderByField(orderBy *string) (string, error) {
+func (r *racesRepo) determineOrderByField(orderBy *string) (string, error) {
 	if orderBy == nil {
 		return AdvertisedStartTime, nil
 	}
@@ -123,7 +148,7 @@ func determineOrderByField(orderBy *string) (string, error) {
 	return "", errors.New("order_by field incorrect")
 }
 
-func (m *racesRepo) scanRaces(
+func (r *racesRepo) scanRaces(
 	rows *sql.Rows,
 ) ([]*racing.Race, error) {
 	var races []*racing.Race
