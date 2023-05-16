@@ -7,12 +7,15 @@ import (
 	"testing"
 )
 
+/*
+RacesRepo test class with different filters in ListRacesRequestFilter
+*/
 func TestRacesRepoVisibleFilter_List(t *testing.T) {
 
 	racesRepo := createRepo(t)
 
 	visible := true
-	// Set upa  filter with visibile true
+	// Set up a  filter with visibile true
 	filter := &racing.ListRacesRequestFilter{
 		Visible: &visible,
 	}

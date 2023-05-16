@@ -79,6 +79,7 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 		}
 	}
 
+	// When visible parameter is included in the request, the visible filter is applied
 	if filter.Visible != nil {
 		clauses = append(clauses, "visible = ?")
 		args = append(args, filter.Visible)
