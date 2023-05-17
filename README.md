@@ -57,8 +57,17 @@ cd ./api
 go build && ./api
 ➜ INFO[0000] API server listening on: localhost:8000
 ```
+4. In another terminal window, start our api service...
 
-4. Make a request for races... 
+```bash
+cd ./sports
+
+go build && ./sports
+➜ INFO[0000] API server listening on: localhost:7000
+```
+
+
+5. Make a request for races and sports... 
 
 ```bash
 curl -X "POST" "http://localhost:8000/v1/list-races" \
@@ -66,6 +75,14 @@ curl -X "POST" "http://localhost:8000/v1/list-races" \
      -d $'{
   "filter": {}
 }'
+
+curl -X "POST" "http://localhost:8000/v1/list-races" \
+     -H 'Content-Type: application/json' \
+     -d $'{
+  "filter": {}
+}'
+
+curl -X "GET" "http://localhost:8000/v1/get-race/{id}"
 ```
 
 ### Changes/Updates Required
@@ -100,7 +117,7 @@ curl -X "POST" "http://localhost:8000/v1/list-races" \
 
 **Note:**
 
-To aid in proto generation following any changes, you can run `go generate ./...` from `api` and `racing` directories.
+To aid in proto generation following any changes, you can run `go generate ./...` from `api`, `racing` and `sports` directories.
 
 Before you do so, please ensure you have the following installed. You can simply run the following command below in each of `api` and `racing` directories.
 
