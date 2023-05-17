@@ -13,7 +13,7 @@ service Racing {
   }
   // GetRace will return a single race by its ID.
   rpc GetRace(GetRaceRequest) returns (Race) {
-    option (google.api.http) = { post: "/v1/get-race/{id}", body: "*" };
+    option (google.api.http) = { get: "/v1/get-race/{id}" };
   }
 }
 

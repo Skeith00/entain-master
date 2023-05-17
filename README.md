@@ -8,6 +8,7 @@ Please treat the services provided as if they would live in a real-world environ
 
 - `api`: A basic REST gateway, forwarding requests onto service(s).
 - `racing`: A very bare-bones racing service.
+- `sports`: A very bare-bones sports service.
 
 ```
 entain/
@@ -15,6 +16,11 @@ entain/
 │  ├─ proto/
 │  ├─ main.go
 ├─ racing/
+│  ├─ db/
+│  ├─ proto/
+│  ├─ service/
+│  ├─ main.go
+├─ sports/
 │  ├─ db/
 │  ├─ proto/
 │  ├─ service/
@@ -76,13 +82,14 @@ curl -X "POST" "http://localhost:8000/v1/list-races" \
   "filter": {}
 }'
 
-curl -X "POST" "http://localhost:8000/v1/list-races" \
+curl -X "GET" "http://localhost:8000/v1/get-race/{id}"
+
+
+curl -X "POST" "http://localhost:8000/v1/list-events" \
      -H 'Content-Type: application/json' \
      -d $'{
   "filter": {}
 }'
-
-curl -X "GET" "http://localhost:8000/v1/get-race/{id}"
 ```
 
 ### Changes/Updates Required

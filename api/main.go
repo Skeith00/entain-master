@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"flag"
-	"git.neds.sh/matty/entain/api/proto/racing"
 	"git.neds.sh/matty/entain/api/proto/sports"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/grpc"
 	"log"
 	"net/http"
+
+	"git.neds.sh/matty/entain/api/proto/racing"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -19,43 +20,36 @@ var (
 
 func main() {
 	flag.Parse()
-
-	if err := run(RacingServer{}); err != nil {
+	if err := run(); err != nil {
 		log.Printf("failed running api server: %s\n", err)
 	}
 
-	if err := run(SportsServer{}); err != nil {
-		log.Printf("failed running api server: %s\n", err)
-	}
 }
 
-type Server interface {
-	register(ctx context.Context, mux *runtime.ServeMux) error
-}
-
-type RacingServer struct{}
-type SportsServer struct{}
-
-func run(server Server) error {
+func run() error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	mux := runtime.NewServeMux()
-	err := server.register(ctx, mux)
+	err := registerSportsServer(ctx, mux)
 	if err != nil {
 		return err
 	}
-	log.Printf("API server listening on: %s\n", *apiEndpoint)
+	err = registerRacingServer(ctx, mux)
+	if err != nil {
+		return err
+	}
 
+	log.Printf("API server listening on: %s\n", *apiEndpoint)
 	return http.ListenAndServe(*apiEndpoint, mux)
 }
 
-func (s SportsServer) register(ctx context.Context, mux *runtime.ServeMux) error {
+func registerSportsServer(ctx context.Context, mux *runtime.ServeMux) error {
 	if err := sports.RegisterSportsHandlerFromEndpoint(
 		ctx,
 		mux,
-		*grpcRacingEndpoint,
+		*grpcSportsEndpoint,
 		[]grpc.DialOption{grpc.WithInsecure()},
 	); err != nil {
 		return err
@@ -63,11 +57,11 @@ func (s SportsServer) register(ctx context.Context, mux *runtime.ServeMux) error
 	return nil
 }
 
-func (r RacingServer) register(ctx context.Context, mux *runtime.ServeMux) error {
+func registerRacingServer(ctx context.Context, mux *runtime.ServeMux) error {
 	if err := racing.RegisterRacingHandlerFromEndpoint(
 		ctx,
 		mux,
-		*grpcSportsEndpoint,
+		*grpcRacingEndpoint,
 		[]grpc.DialOption{grpc.WithInsecure()},
 	); err != nil {
 		return err
