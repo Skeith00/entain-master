@@ -1,7 +1,9 @@
 api/api
 racing/racing
+racing/db/racing.db
+/sports/sports
+/sports/db/sports.db
 .DS_STORE
 *.out
 .idea
 .vscode
-racing/db/racing.db
